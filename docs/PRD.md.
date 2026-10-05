@@ -1,0 +1,122 @@
+BRD-Gen: Product Requirements Document
+Version: 1.0 | Context: 24-hour hackathon (HackSprint) | Status: Ready to build
+
+1. Problem statement
+Build a scalable, multi-modal AI system using Google Gemini AI and integrated Google Cloud tools (Vertex AI, Cloud Storage, BigQuery) that can process real-time, fragmented data (text, images, documents) and deliver accurate, context-aware, and explainable decisions in complex and dynamic environments.
+
+Our domain choice: business requirements gathering.
+
+The pain: requirements for a project are scattered across meeting notes, emails, chats, whiteboard photos and PDFs. Analysts stitch them together by hand, which takes days, misses contradictions, and leaves no trace of who asked for what.
+
+2. Product vision
+BRD-Gen is an AI agent that reads fragmented, multi-modal project inputs and produces a Business Requirements Document in which every requirement shows its source, and every contradiction is flagged for a human.
+
+How it maps to the problem statement
+Problem statement says	BRD-Gen delivers
+Multi-modal, fragmented data	Text, image and PDF inputs combined per project
+Real-time	New inputs update the requirement set without starting over
+Context-aware	Requirements are judged against all sources, not one file
+Explainable decisions	Each requirement shows source, confidence and conflicts
+Accurate	Writer sees only extracted, source-linked requirements
+Scalable, Google Cloud	Serverless design using Gemini, Cloud Storage, BigQuery
+3. Users
+User	Need
+Business analyst (primary)	Turn scattered inputs into a clean BRD fast
+Project manager / stakeholder	Confirm requirements, resolve conflicts, approve
+Reviewer / auditor	See where each requirement came from
+4. Goals and non-goals
+Goals (hackathon):
+
+Upload mixed files and get a structured list of requirements with sources.
+Detect and show at least one contradiction between sources.
+Generate a downloadable BRD with a traceability table.
+Use Gemini plus at least Cloud Storage and BigQuery.
+Non-goals (future scope, show on roadmap only):
+
+Live audio transcription, Jira export, multi-user login, Dataflow streaming, fine-tuning, full Vector Search.
+5. Scope
+Priority	Feature
+Must (MVP)	File upload, Gemini extraction, source references, conflict detection, BRD generation, traceability table, download
+Should	Cloud Storage for uploads, BigQuery for requirements, approve/reject per requirement, confidence display
+Could	Regenerate only changed sections, gap questions ("what is missing?"), DOCX export
+Won't (this round)	Authentication, real-time streaming pipeline, integrations
+6. Functional requirements
+ID	Requirement	Priority	Acceptance criteria
+FR-01	The user can upload multiple files (.txt, .md, .pdf, .png, .jpg)	Must	Three mixed files upload without error
+FR-02	The system extracts requirements from every file type, including images	Must	A requirement drawn from a whiteboard photo appears in results
+FR-03	Each requirement has an ID, type, text, actor, priority, source and confidence	Must	All fields present in the output table
+FR-04	Each requirement cites its source (file plus page or timestamp or region)	Must	No requirement displayed without a source
+FR-05	The system flags contradictions between requirements	Must	Planted 5 min vs 15 min conflict is shown in a red banner
+FR-06	The system generates a BRD with sections: functional, non-functional, risks, open questions	Must	BRD preview renders all four sections
+FR-07	The BRD includes a traceability table (requirement, source, confidence)	Must	Table matches the requirements list
+FR-08	The user can download the BRD (Markdown at minimum)	Must	Downloaded file opens correctly
+FR-09	Raw files are stored in Cloud Storage	Should	Uploaded file visible in the bucket
+FR-10	Requirements and conflicts are stored in BigQuery	Should	Rows queryable in BigQuery
+FR-11	The user can approve or reject each requirement	Should	Rejected items disappear from the BRD
+FR-12	The system lists open questions where information is missing	Could	At least one question generated for a thin input
+FR-13	Adding a new file updates the existing requirement set	Could	New requirements merge with the old ones
+7. Non-functional requirements
+ID	Requirement	Target
+NFR-01	Accuracy: no invented requirements	Every requirement traces to a real source text
+NFR-02	Explainability	Source, confidence and conflict flag on every item
+NFR-03	Performance	Three small files processed in under ~60 seconds
+NFR-04	Security	API keys never in code or on slides; no real personal data in demos
+NFR-05	Reliability	Clear error message if the API fails; demo mode works offline
+NFR-06	Usability	One page, three clicks from upload to download
+8. System design summary
+Flow: Upload → Cloud Storage → Gemini extraction (structured JSON) → consolidation and conflict check → BigQuery → Gemini BRD writer (only from stored requirements) → verification and human review → BRD plus traceability table.
+
+Tech stack:
+
+Layer	Choice
+AI	Gemini (Flash for extraction, Pro for writing) via the Gemini API or Vertex AI
+Storage	Cloud Storage (files), BigQuery (requirements, sources, conflicts)
+Backend / UI	Python, Streamlit (Cloud Run for scale-up)
+Libraries	google-genai, pydantic, pandas
+Key design rule: the BRD writer never sees raw files, only the extracted, source-linked requirements. This is what prevents hallucination.
+
+9. Data model
+requirements: req_id, project_id, type, text, actor, priority, source, confidence, status sources: source_id, file_name, type, uri, uploaded_at conflicts: conflict_id, req_ids, issue, status open_questions: q_id, section, question
+
+10. Success metrics
+Metric	How to measure	Target
+Requirement recall	Plant 10 requirements across the files; count how many are found	8 of 10 or better
+Traceability	Share of requirements with a valid source	100%
+Conflict detection	Planted contradictions caught	1 of 1
+Time to first BRD	Upload to download	Under 2 minutes
+Report what you actually measure. Do not claim numbers you have not tested.
+
+11. Test plan
+Create one demo project ("Loan Portal Revamp") with:
+
+kickoff_call.txt: includes "notify the officer within 15 minutes"
+emails.pdf: includes "notify within 5 minutes" and an encryption requirement
+whiteboard.jpg: a hand-drawn sketch with a status dashboard
+Check: all three files are read, the conflict is flagged, the BRD cites sources, and the download works.
+
+12. Risks
+Risk	Mitigation
+API quota or Wi-Fi fails during demo	Keep demo mode and a recorded run as backup
+Model misses or invents items	Strict JSON schema, temperature 0, source required, manual spot-check
+Handwriting or image quality is poor	Use a clear, large-text whiteboard photo
+Cloud setup eats time	Build the core first; add Storage and BigQuery after
+Scope creep	Freeze scope after the Must list
+13. 24-hour plan
+Hours	Work
+0-2	Setup, API key, repo, run the existing prototype in demo mode
+2-6	Live extraction on text, PDF and image; tune the prompt; add sources
+6-10	Conflict detection, BRD generation, traceability table
+10-14	Cloud Storage and BigQuery integration
+14-18	Approve/reject, open questions, UI polish
+18-21	Test on the demo project, fix bugs, measure results
+21-23	Screenshots, README, record backup demo
+23-24	Final check, submit
+14. Deliverables
+Working app (Streamlit) and GitHub repo with README
+Presentation deck and screenshot
+Sample input files and a sample generated BRD
+Short list of measured results
+15. Open questions
+Team size and who owns which part (extraction, UI, cloud, slides)?
+Does the hackathon require code written only during the event?
+Are Google Cloud credits provided for Vertex AI, or will we use the Gemini API key?
